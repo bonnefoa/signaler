@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
@@ -18,7 +19,10 @@ var testAddr = "localhost:10443"
 
 func TestMain(m *testing.M) {
 	if firstLaunch {
-		log.SetFlags(0)
+		if !testing.Verbose() {
+			log.SetFlags(0)
+			log.SetOutput(ioutil.Discard)
+		}
 		go launchWebsocketServer(&testAddr)
 		firstLaunch = false
 	}
