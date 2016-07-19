@@ -80,7 +80,7 @@ func cleanupConnection(conn *websocket.Conn, ID string) {
 	conn.Close()
 }
 
-func signalerEndpoint(w http.ResponseWriter, r *http.Request) {
+func signalerHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrader:", err)
@@ -101,7 +101,7 @@ func signalerEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func launchWebsocketServer(addr *string) {
-	http.HandleFunc("/signaler", signalerEndpoint)
+	http.HandleFunc("/signaler", signalerHandler)
 	log.Printf("Listening on %s", *addr)
 	err := http.ListenAndServe(*addr, nil)
 	log.Fatal(err)
