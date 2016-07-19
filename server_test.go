@@ -2,17 +2,22 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
+
+var numConnections = flag.Int("numConnections", 2000,
+	"Number of test connections")
 
 var firstLaunch = true
 var testAddr = "localhost:10443"
@@ -147,5 +152,23 @@ func TestSimpleCommunication(t *testing.T) {
 	closeConn(t, sndConn)
 	waitCandidateNumber(t, 1)
 	closeConn(t, firstConn)
+	waitCandidateNumber(t, 0)
+}
+
+func openConnection(conn **websocket.Conn, id string, t *testing.T) {
+	*conn = connect(t, &testAddr)
+	sendHandshake(t, candidate{ID: id}, *conn)
+}
+
+func TestLotsOfConnections(t *testing.T) {
+	connections := make([]*websocket.Conn, *numConnections, *numConnections)
+
+	for i := 0; i < *numConnections; i++ {
+		go openConnection(&connections[i], strconv.Itoa(i), t)
+	}
+	waitCandidateNumber(t, *numConnections)
+	for i := 0; i < *numConnections; i++ {
+		closeConn(t, connections[i])
+	}
 	waitCandidateNumber(t, 0)
 }
