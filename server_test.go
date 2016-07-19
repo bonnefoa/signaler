@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,7 +22,7 @@ func TestMain(m *testing.M) {
 		go launchWebsocketServer(&testAddr)
 		firstLaunch = false
 	}
-	numMsgSend = 0
+	atomic.StoreUint64(&numMsgSend, 0)
 	os.Exit(m.Run())
 }
 
@@ -82,13 +83,20 @@ func recvMsg(t *testing.T, conn *websocket.Conn) map[string][]byte {
 	return res
 }
 
+func getNumCandidates() int {
+	candidatesMutex.Lock()
+	num := len(candidates)
+	candidatesMutex.Unlock()
+	return num
+}
+
 func waitCandidateNumber(t *testing.T, expectedNumber int) {
-	for i := 0; i < 10 || len(candidates) != expectedNumber; i++ {
+	for i := 0; i < 10 || getNumCandidates() != expectedNumber; i++ {
 		time.Sleep(100 * time.Millisecond)
 	}
-	if len(candidates) != expectedNumber {
+	if getNumCandidates() != expectedNumber {
 		t.Fatalf("Expected %d candidates, got %d",
-			expectedNumber, len(candidates))
+			expectedNumber, getNumCandidates())
 	}
 }
 
@@ -127,8 +135,9 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 
 	sendMessage(t, "unknown", firstConn, "sdp")
-	if numMsgSend != 2 {
-		t.Fatalf("Only 2 messages should have been send, got %d", numMsgSend)
+	currentMsg := atomic.LoadUint64(&numMsgSend)
+	if currentMsg != 2 {
+		t.Fatalf("Only 2 messages should have been send, got %d", currentMsg)
 	}
 
 	closeConn(t, sndConn)

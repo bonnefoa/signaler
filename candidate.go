@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -18,3 +19,4 @@ func (cnd candidate) String() string {
 type candidateMap map[string]candidate
 
 var candidates = make(candidateMap)
+var candidatesMutex sync.Mutex

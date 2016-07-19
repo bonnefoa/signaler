@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var numMsgSend int64
+var numMsgSend uint64
 
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"signaler"},
@@ -37,12 +37,15 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 			return fmt.Errorf("No dest in message")
 		}
 		dstID := res["dest"]
+		candidatesMutex.Lock()
 		if _, ok := candidates[dstID]; !ok {
 			log.Printf("Unknown dest: %s", dstID)
+			candidatesMutex.Unlock()
 			continue
 		}
 		candidates[dstID].conn.WriteMessage(messageType, msg)
-		atomic.AddInt64(&numMsgSend, 1)
+		candidatesMutex.Unlock()
+		atomic.AddUint64(&numMsgSend, 1)
 		log.Printf("Sending msg %s to %s", msg, dstID)
 	}
 }
@@ -63,13 +66,17 @@ func handshake(conn *websocket.Conn) (*candidate, error) {
 			string(candidateMarshalled))
 	}
 	log.Printf("Add candidate %s", cnd.ID)
+	candidatesMutex.Lock()
 	candidates[cnd.ID] = cnd
+	candidatesMutex.Unlock()
 	return &cnd, nil
 }
 
 func cleanupConnection(conn *websocket.Conn, ID string) {
 	log.Printf("Cleaning connection %s", ID)
+	candidatesMutex.Lock()
 	delete(candidates, ID)
+	candidatesMutex.Unlock()
 	conn.Close()
 }
 
