@@ -103,6 +103,6 @@ func signalerEndpoint(w http.ResponseWriter, r *http.Request) {
 func launchWebsocketServer(addr *string) {
 	http.HandleFunc("/signaler", signalerEndpoint)
 	log.Printf("Listening on %s", *addr)
-	err := http.ListenAndServeTLS(*addr, "cert.pem", "key.pem", nil)
+	err := http.ListenAndServe(*addr, nil)
 	log.Fatal(err)
 }

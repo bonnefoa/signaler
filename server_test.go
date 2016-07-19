@@ -1,8 +1,8 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -24,8 +24,8 @@ var testAddr = "localhost:10443"
 func TestMain(m *testing.M) {
 	if !flag.Parsed() {
 		flag.Parse()
+		log.SetFlags(0)
 		if !testing.Verbose() {
-			log.SetFlags(0)
 			log.SetOutput(ioutil.Discard)
 		}
 		go launchWebsocketServer(&testAddr)
@@ -38,11 +38,8 @@ func connect(t *testing.T, addr *string) *websocket.Conn {
 	var err error
 	for i := 0; i < 5; i++ {
 		time.Sleep(200 * time.Millisecond)
-		u := url.URL{Scheme: "wss", Host: *addr, Path: "/signaler"}
+		u := url.URL{Scheme: "ws", Host: *addr, Path: "/signaler"}
 		d := websocket.Dialer{Subprotocols: []string{"signaler"}}
-		d.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
 		c, _, err := d.Dial(u.String(), nil)
 		if err == nil {
 			return c
@@ -100,7 +97,8 @@ func getNumCandidates() int {
 
 func waitCandidateNumber(t *testing.T, expectedNumber int) {
 	for i := 0; i < 10 || getNumCandidates() != expectedNumber; i++ {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
+		fmt.Printf("Expected %d, got %d\n", expectedNumber, getNumCandidates())
 	}
 	if getNumCandidates() != expectedNumber {
 		t.Fatalf("Expected %d candidates, got %d",
@@ -159,12 +157,25 @@ func openConnection(conn **websocket.Conn, id string, t *testing.T) {
 	sendHandshake(t, candidate{ID: id}, *conn)
 }
 
+func openWorker(t *testing.T, connections []*websocket.Conn, jobs <-chan int) {
+	for i := range jobs {
+		openConnection(&connections[i], strconv.Itoa(i), t)
+	}
+}
+
 func TestLotsOfConnections(t *testing.T) {
 	connections := make([]*websocket.Conn, *numConnections, *numConnections)
 
-	for i := 0; i < *numConnections; i++ {
-		go openConnection(&connections[i], strconv.Itoa(i), t)
+	jobs := make(chan int, *numConnections)
+
+	for i := 0; i < 800; i++ {
+		go openWorker(t, connections, jobs)
 	}
+
+	for i := 0; i < *numConnections; i++ {
+		jobs <- i
+	}
+	close(jobs)
 	waitCandidateNumber(t, *numConnections)
 	for i := 0; i < *numConnections; i++ {
 		closeConn(t, connections[i])
