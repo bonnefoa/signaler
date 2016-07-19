@@ -19,17 +19,16 @@ import (
 var numConnections = flag.Int("numConnections", 2000,
 	"Number of test connections")
 
-var firstLaunch = true
 var testAddr = "localhost:10443"
 
 func TestMain(m *testing.M) {
-	if firstLaunch {
+	if !flag.Parsed() {
+		flag.Parse()
 		if !testing.Verbose() {
 			log.SetFlags(0)
 			log.SetOutput(ioutil.Discard)
 		}
 		go launchWebsocketServer(&testAddr)
-		firstLaunch = false
 	}
 	atomic.StoreUint64(&numMsgSend, 0)
 	os.Exit(m.Run())
