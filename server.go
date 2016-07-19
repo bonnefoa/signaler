@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func listenLoop(conn *websocket.Conn, cnd *candidate) error {
-	log.Print("Start listening loop", cnd)
+	log.Print("Start listening loop", cnd.String())
 	for {
 		messageType, msg, err := conn.ReadMessage()
 		log.Printf("Received message %s, for %s", string(msg), cnd.String())
@@ -65,7 +65,7 @@ func handshake(conn *websocket.Conn) (*candidate, error) {
 		return nil, fmt.Errorf("Illegal handshake message %s",
 			string(candidateMarshalled))
 	}
-	log.Printf("Add candidate %s", cnd.ID)
+	log.Printf("Add candidate %s", cnd.String())
 	candidatesMutex.Lock()
 	candidates[cnd.ID] = cnd
 	candidatesMutex.Unlock()
