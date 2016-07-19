@@ -21,6 +21,7 @@ func TestMain(m *testing.M) {
 		go launchWebsocketServer(&testAddr)
 		firstLaunch = false
 	}
+	numMsgSend = 0
 	os.Exit(m.Run())
 }
 
@@ -126,10 +127,8 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 
 	sendMessage(t, "unknown", firstConn, "sdp")
-	sndConn.SetReadDeadline(time.Now().Add(time.Second))
-	thirdMsg := recvMsg(t, sndConn)
-	if thirdMsg != nil {
-		t.Fatalf("Should have timeouted on third msg, got %s", thirdMsg)
+	if numMsgSend != 2 {
+		t.Fatalf("Only 2 messages should have been send, got %d", numMsgSend)
 	}
 
 	closeConn(t, sndConn)

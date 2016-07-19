@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 )
+
+var numMsgSend int64
 
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"signaler"},
@@ -39,6 +42,7 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 			continue
 		}
 		candidates[dstID].conn.WriteMessage(messageType, msg)
+		atomic.AddInt64(&numMsgSend, 1)
 		log.Printf("Sending msg %s to %s", msg, dstID)
 	}
 }
