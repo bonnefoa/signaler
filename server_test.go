@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -96,9 +95,9 @@ func getNumCandidates() int {
 }
 
 func waitCandidateNumber(t *testing.T, expectedNumber int) {
-	for i := 0; i < 10 || getNumCandidates() != expectedNumber; i++ {
+	for i := 0; i < 10 && getNumCandidates() != expectedNumber; i++ {
 		time.Sleep(500 * time.Millisecond)
-		fmt.Printf("Expected %d, got %d\n", expectedNumber, getNumCandidates())
+		t.Logf("Expected %d, got %d\n", expectedNumber, getNumCandidates())
 	}
 	if getNumCandidates() != expectedNumber {
 		t.Fatalf("Expected %d candidates, got %d",
