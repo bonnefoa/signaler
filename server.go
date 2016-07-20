@@ -43,7 +43,7 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 	log.Print("Start listening loop", cnd.String())
 	for {
 		messageType, msg, err := conn.ReadMessage()
-		log.Printf("Received websocket message %q, for %s", msg, cnd.String())
+		log.Printf("[Websocket %s]: Received %q", cnd.String(), msg)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 			log.Printf("Error receiving message to broker")
 			return err
 		}
-		log.Printf("Client received %q", data)
+		log.Printf("[Zmq %s] Received %q", cnd.ID, data)
 	}
 }
 
