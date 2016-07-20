@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 
+	"github.com/bonnefoa/signaler/conf"
 	zmq "github.com/pebbe/zmq3"
 )
 
@@ -54,7 +57,13 @@ func launchBroker() error {
 		log.Printf("Error when creating broker socket")
 		return err
 	}
-	frontend.Bind("tcp://*:5558")
-	backend.Bind("tcp://*:5559")
+	frontend.Bind(fmt.Sprintf("tcp://*:%d", *conf.FrontendPort))
+	backend.Bind(fmt.Sprintf("tcp://*:%d", *conf.BackendPort))
 	return brokerListen(frontend, backend)
+}
+
+func main() {
+	flag.Parse()
+	log.SetFlags(0)
+	launchBroker()
 }

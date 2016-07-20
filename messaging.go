@@ -54,7 +54,7 @@ func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 	log.Printf("Start worker loop for %s", identity)
 	for {
 		msg, err := socket.RecvBytes(0)
-		log.Printf("Worker %s received %q", identity, msg)
+		log.Printf("[Zmq %s] received %q", identity, msg)
 		if err != nil {
 			log.Printf("Error when receiving message for candidate %s", cnd.String())
 			return
@@ -62,6 +62,7 @@ func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 		if msg[0] == 'Q' {
 			return
 		}
+		log.Printf("[Websocket %s]: Send %q", cnd.String(), msg)
 		conn.WriteMessage(websocket.TextMessage, msg)
 		atomic.AddUint64(&numMsgSend, 1)
 	}
