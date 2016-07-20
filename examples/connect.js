@@ -20,13 +20,13 @@ function SignalingChannel() {
     }
 
     this.send = function(data) {
-        console.log("Sending");
+        console.log("Sending", data);
         this.ws.send(data)
     }
 
     this.connect = function() {
         console.log("Connecting");
-        this.ws = new WebSocket("wss://localhost:10443/signaler", "signaler");
+        this.ws = new WebSocket("ws://localhost:10443/signaler", "signaler");
         this.ws.onopen = function () {
             this.send(JSON.stringify({
                 'ID': isCaller ? 'caller' : 'callee'
@@ -48,7 +48,8 @@ function start() {
     pc.onicecandidate = function (evt) {
         if (evt.candidate)
             signalingChannel.send(JSON.stringify({
-                'candidate': evt.candidate
+                'candidate': evt.candidate,
+                'dest': isCaller ? 'callee' : 'caller'
             }));
     };
 
@@ -77,7 +78,8 @@ function start() {
 function localDescCreated(desc) {
     pc.setLocalDescription(desc, function () {
         signalingChannel.send(JSON.stringify({
-            'sdp': pc.localDescription
+            'sdp': pc.localDescription,
+            'dest': isCaller ? 'callee' : 'caller'
         }));
     }, logError);
 }
