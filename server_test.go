@@ -24,9 +24,11 @@ func TestMain(m *testing.M) {
 	if !flag.Parsed() {
 		flag.Parse()
 		log.SetFlags(0)
+		setupZmq()
 		if !testing.Verbose() {
 			log.SetOutput(ioutil.Discard)
 		}
+		go launchBroker()
 		go launchWebsocketServer(&testAddr)
 	}
 	atomic.StoreUint64(&numMsgSend, 0)
@@ -87,21 +89,15 @@ func recvMsg(t *testing.T, conn *websocket.Conn) map[string][]byte {
 	return res
 }
 
-func getNumCandidates() int {
-	candidatesMutex.Lock()
-	num := len(candidates)
-	candidatesMutex.Unlock()
-	return num
-}
-
-func waitCandidateNumber(t *testing.T, expectedNumber int) {
-	for i := 0; i < 10 && getNumCandidates() != expectedNumber; i++ {
+func waitOpenedConnections(t *testing.T, expectedNumber int32) {
+	for i := 0; i < 10 && atomic.LoadInt32(&openedConnections) != expectedNumber; i++ {
 		time.Sleep(500 * time.Millisecond)
-		t.Logf("Expected %d, got %d\n", expectedNumber, getNumCandidates())
+		t.Logf("Expected %d, got %d\n", expectedNumber,
+			atomic.LoadInt32(&openedConnections))
 	}
-	if getNumCandidates() != expectedNumber {
+	if atomic.LoadInt32(&openedConnections) != expectedNumber {
 		t.Fatalf("Expected %d candidates, got %d",
-			expectedNumber, getNumCandidates())
+			expectedNumber, atomic.LoadInt32(&openedConnections))
 	}
 }
 
@@ -109,9 +105,9 @@ func TestSimpleHandshake(t *testing.T) {
 	conn := connect(t, &testAddr)
 	cnd := candidate{ID: "first"}
 	sendHandshake(t, cnd, conn)
-	waitCandidateNumber(t, 1)
+	waitOpenedConnections(t, 1)
 	conn.Close() // Test brutal close
-	waitCandidateNumber(t, 0)
+	waitOpenedConnections(t, 0)
 }
 
 func TestSimpleCommunication(t *testing.T) {
@@ -126,7 +122,7 @@ func TestSimpleCommunication(t *testing.T) {
 	sendHandshake(t, firstCnd, firstConn)
 	sendHandshake(t, sndCnd, sndConn)
 
-	waitCandidateNumber(t, 2)
+	waitOpenedConnections(t, 2)
 	sendMessage(t, sndID, firstConn, "candidate")
 	firstMsg := recvMsg(t, sndConn)
 	if _, ok := firstMsg["candidate"]; !ok {
@@ -146,9 +142,9 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 
 	closeConn(t, sndConn)
-	waitCandidateNumber(t, 1)
+	waitOpenedConnections(t, 1)
 	closeConn(t, firstConn)
-	waitCandidateNumber(t, 0)
+	waitOpenedConnections(t, 0)
 }
 
 func openConnection(conn **websocket.Conn, id string, t *testing.T) {
@@ -175,9 +171,9 @@ func TestLotsOfConnections(t *testing.T) {
 		jobs <- i
 	}
 	close(jobs)
-	waitCandidateNumber(t, *numConnections)
+	waitOpenedConnections(t, int32(*numConnections))
 	for i := 0; i < *numConnections; i++ {
 		closeConn(t, connections[i])
 	}
-	waitCandidateNumber(t, 0)
+	waitOpenedConnections(t, 0)
 }

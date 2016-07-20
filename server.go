@@ -8,9 +8,11 @@ import (
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
+	zmq "github.com/pebbe/zmq3"
 )
 
 var numMsgSend uint64
+var openedConnections int32
 
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"signaler"},
@@ -19,11 +21,29 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func cleanConnection(clientSocket *zmq.Socket, workerSocket *zmq.Socket) {
+	atomic.AddInt32(&openedConnections, -1)
+	clientSocket.Close()
+	workerSocket.SendBytes([]byte("Q"), 0)
+}
+
 func listenLoop(conn *websocket.Conn, cnd *candidate) error {
+	clientSocket, err := createClientSocket(cnd)
+	if err != nil {
+		return err
+	}
+	workerSocket, err := createWorkerSocket(cnd)
+	if err != nil {
+		return err
+	}
+	defer cleanConnection(clientSocket, workerSocket)
+	go workerLoop(conn, workerSocket, cnd)
+	atomic.AddInt32(&openedConnections, 1)
+
 	log.Print("Start listening loop", cnd.String())
 	for {
 		messageType, msg, err := conn.ReadMessage()
-		log.Printf("Received message %s, for %s", string(msg), cnd.String())
+		log.Printf("Received websocket message %q, for %s", msg, cnd.String())
 		if err != nil {
 			return err
 		}
@@ -37,16 +57,22 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 			return fmt.Errorf("No dest in message")
 		}
 		dstID := res["dest"]
-		candidatesMutex.Lock()
-		if _, ok := candidates[dstID]; !ok {
-			log.Printf("Unknown dest: %s", dstID)
-			candidatesMutex.Unlock()
-			continue
+
+		req := make([]string, 2, 2)
+		req[1] = string(msg)
+		req[0] = dstID
+
+		_, err = clientSocket.SendMessage(req)
+		if err != nil {
+			log.Printf("Error sending message to broker")
+			return err
 		}
-		candidates[dstID].conn.WriteMessage(messageType, msg)
-		candidatesMutex.Unlock()
-		atomic.AddUint64(&numMsgSend, 1)
-		log.Printf("Sending msg %s to %s", msg, dstID)
+		data, err := clientSocket.RecvMessage(0)
+		if err != nil {
+			log.Printf("Error receiving message to broker")
+			return err
+		}
+		log.Printf("Client received %q", data)
 	}
 }
 
@@ -65,19 +91,7 @@ func handshake(conn *websocket.Conn) (*candidate, error) {
 		return nil, fmt.Errorf("Illegal handshake message %s",
 			string(candidateMarshalled))
 	}
-	log.Printf("Add candidate %s", cnd.String())
-	candidatesMutex.Lock()
-	candidates[cnd.ID] = cnd
-	candidatesMutex.Unlock()
 	return &cnd, nil
-}
-
-func cleanupConnection(conn *websocket.Conn, ID string) {
-	log.Printf("Cleaning connection %s", ID)
-	candidatesMutex.Lock()
-	delete(candidates, ID)
-	candidatesMutex.Unlock()
-	conn.Close()
 }
 
 func signalerHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +100,13 @@ func signalerHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrader:", err)
 		return
 	}
+	defer conn.Close()
 	cnd, err := handshake(conn)
 	if err != nil {
 		log.Print("handshake:", err)
 		conn.Close()
 		return
 	}
-	defer cleanupConnection(conn, cnd.ID)
 	err = listenLoop(conn, cnd)
 	if err != nil {
 		log.Print("listenLoop:", err)

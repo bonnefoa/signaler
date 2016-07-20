@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -13,10 +12,5 @@ type candidate struct {
 }
 
 func (cnd candidate) String() string {
-	return fmt.Sprintf("Id:%s\r\n", cnd.ID)
+	return fmt.Sprintf("Id:%s", cnd.ID)
 }
-
-type candidateMap map[string]candidate
-
-var candidates = make(candidateMap)
-var candidatesMutex sync.Mutex
