@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync/atomic"
 
+	"github.com/bonnefoa/signaler/conf"
 	"github.com/gorilla/websocket"
 	zmq "github.com/pebbe/zmq3"
 )
@@ -17,8 +18,8 @@ func createClientSocket(cnd *candidate) (*zmq.Socket, error) {
 		log.Print("Could not create REQ socket", err)
 		return nil, err
 	}
-	err = clientSocket.Connect(fmt.Sprintf("tcp://%s:%d", *brokerHost,
-		*frontendPort))
+	err = clientSocket.Connect(fmt.Sprintf("tcp://%s:%d", *conf.BrokerHost,
+		*conf.FrontendPort))
 	if err != nil {
 		log.Printf("Could not connect to broker")
 		return nil, err
@@ -34,8 +35,8 @@ func createWorkerSocket(cnd *candidate) (*zmq.Socket, error) {
 		log.Printf("Could not create DEALER socket")
 		return nil, err
 	}
-	err = workerSocket.Connect(fmt.Sprintf("tcp://%s:%d", *brokerHost,
-		*backendPort))
+	err = workerSocket.Connect(fmt.Sprintf("tcp://%s:%d", *conf.BrokerHost,
+		*conf.BackendPort))
 	if err != nil {
 		log.Printf("Could not connect to broker")
 		return nil, err
