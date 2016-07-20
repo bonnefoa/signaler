@@ -43,15 +43,6 @@ func createWorkerSocket(cnd *candidate) (*zmq.Socket, error) {
 	return workerSocket, nil
 }
 
-func setupZmq() error {
-	err := zmq.SetMaxSockets(*maxZmqSockets)
-	if err != nil {
-		log.Print("Error on zmq setup", err)
-		return err
-	}
-	return nil
-}
-
 func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 	defer socket.Close()
 	identity, err := socket.GetIdentity()
