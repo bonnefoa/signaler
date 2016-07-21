@@ -7,7 +7,7 @@ import (
 
 	"github.com/bonnefoa/signaler/conf"
 	"github.com/gorilla/websocket"
-	zmq "github.com/pebbe/zmq3"
+	zmq "github.com/pebbe/zmq4"
 )
 
 // Socket responsible for sending message to relay to broker

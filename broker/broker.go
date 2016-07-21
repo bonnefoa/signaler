@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/bonnefoa/signaler/conf"
-	zmq "github.com/pebbe/zmq3"
+	zmq "github.com/pebbe/zmq4"
 )
 
 func brokerListen(frontend *zmq.Socket, backend *zmq.Socket) error {

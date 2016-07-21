@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
-	zmq "github.com/pebbe/zmq3"
+	zmq "github.com/pebbe/zmq4"
 )
 
 var numMsgSend uint64
