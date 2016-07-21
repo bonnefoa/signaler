@@ -1,4 +1,4 @@
-package main
+package broker
 
 import (
 	"flag"
@@ -46,7 +46,8 @@ func brokerListen(frontend *zmq.Socket, backend *zmq.Socket) error {
 	}
 }
 
-func launchBroker() error {
+// LaunchBroker start broker for message routing
+func LaunchBroker() error {
 	frontend, err := zmq.NewSocket(zmq.ROUTER)
 	if err != nil {
 		log.Printf("Error when creating broker socket")
@@ -65,5 +66,6 @@ func launchBroker() error {
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
-	launchBroker()
+	conf.SetupZmq()
+	LaunchBroker()
 }

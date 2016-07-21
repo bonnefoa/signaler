@@ -56,10 +56,12 @@ func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 		msg, err := socket.RecvBytes(0)
 		log.Printf("[Zmq %s] received %q", identity, msg)
 		if err != nil {
-			log.Printf("Error when receiving message for candidate %s", cnd.String())
+			log.Printf("Error when receiving message for candidate %s",
+				cnd.String())
 			return
 		}
-		if msg[0] == 'Q' {
+		if len(msg) == 1 && msg[0] == 'Q' {
+			log.Printf("[Worker %s] Exiting", identity)
 			return
 		}
 		log.Printf("[Websocket %s]: Send %q", cnd.String(), msg)

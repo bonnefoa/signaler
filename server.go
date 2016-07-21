@@ -21,10 +21,18 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func cleanConnection(clientSocket *zmq.Socket, workerSocket *zmq.Socket) {
-	atomic.AddInt32(&openedConnections, -1)
+func cleanConnection(cnd *candidate, clientSocket *zmq.Socket,
+	workerSocket *zmq.Socket) {
+	log.Printf("Cleaning connection %s", cnd.ID)
+	quitMsg := make([]string, 2, 2)
+	quitMsg[1] = string("Q")
+	quitMsg[0] = cnd.ID
+	_, err := clientSocket.SendMessage(quitMsg)
+	if err != nil {
+		log.Printf("Could not send quit message to %s", cnd.String())
+	}
 	clientSocket.Close()
-	workerSocket.SendBytes([]byte("Q"), 0)
+	atomic.AddInt32(&openedConnections, -1)
 }
 
 func listenLoop(conn *websocket.Conn, cnd *candidate) error {
@@ -36,8 +44,8 @@ func listenLoop(conn *websocket.Conn, cnd *candidate) error {
 	if err != nil {
 		return err
 	}
-	defer cleanConnection(clientSocket, workerSocket)
 	go workerLoop(conn, workerSocket, cnd)
+	defer cleanConnection(cnd, clientSocket, workerSocket)
 	atomic.AddInt32(&openedConnections, 1)
 
 	log.Print("Start listening loop", cnd.String())
