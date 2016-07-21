@@ -50,12 +50,22 @@ func brokerListen(frontend *zmq.Socket, backend *zmq.Socket) error {
 func LaunchBroker() error {
 	frontend, err := zmq.NewSocket(zmq.ROUTER)
 	if err != nil {
-		log.Printf("Error when creating broker socket")
+		log.Print("Error when creating broker socket", err)
 		return err
 	}
 	backend, err := zmq.NewSocket(zmq.ROUTER)
 	if err != nil {
-		log.Printf("Error when creating broker socket")
+		log.Print("Error when creating broker socket", err)
+		return err
+	}
+	err = frontend.SetRouterHandover(true)
+	if err != nil {
+		log.Print("Error when setting handover for frontend", err)
+		return err
+	}
+	err = backend.SetRouterHandover(true)
+	if err != nil {
+		log.Print("Error when setting handover for backend", err)
 		return err
 	}
 	frontend.Bind(fmt.Sprintf("tcp://*:%d", *conf.FrontendPort))
