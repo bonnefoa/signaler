@@ -134,6 +134,10 @@ func TestReuseIdentity(t *testing.T) {
 	if _, ok := firstMsg["candidate"]; !ok {
 		t.Fatalf("Expected candidate in map %s", firstMsg)
 	}
+
+	closeConn(t, sndConn)
+	closeConn(t, firstConn)
+	waitOpenedConnections(t, 0)
 }
 
 func TestSimpleCommunication(t *testing.T) {
