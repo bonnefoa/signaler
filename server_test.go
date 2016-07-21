@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bonnefoa/signaler/broker"
+	"github.com/bonnefoa/signaler/conf"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,11 +26,11 @@ func TestMain(m *testing.M) {
 	if !flag.Parsed() {
 		flag.Parse()
 		log.SetFlags(0)
-		setupZmq()
+		conf.SetupZmq()
 		if !testing.Verbose() {
 			log.SetOutput(ioutil.Discard)
 		}
-		go launchBroker()
+		go broker.LaunchBroker()
 		go launchWebsocketServer(&testAddr)
 	}
 	atomic.StoreUint64(&numMsgSend, 0)
@@ -108,6 +110,30 @@ func TestSimpleHandshake(t *testing.T) {
 	waitOpenedConnections(t, 1)
 	conn.Close() // Test brutal close
 	waitOpenedConnections(t, 0)
+}
+
+func TestReuseIdentity(t *testing.T) {
+	firstConn := connect(t, &testAddr)
+	sndConn := connect(t, &testAddr)
+
+	firstID := "firstClient"
+	sndID := "secondClient"
+	firstCnd := candidate{ID: firstID}
+	sndCnd := candidate{ID: sndID}
+
+	sendHandshake(t, firstCnd, firstConn)
+	sendHandshake(t, sndCnd, sndConn)
+
+	sndConn.Close()
+	sndConn = connect(t, &testAddr)
+	sendHandshake(t, sndCnd, sndConn)
+
+	waitOpenedConnections(t, 2)
+	sendMessage(t, sndID, firstConn, "candidate")
+	firstMsg := recvMsg(t, sndConn)
+	if _, ok := firstMsg["candidate"]; !ok {
+		t.Fatalf("Expected candidate in map %s", firstMsg)
+	}
 }
 
 func TestSimpleCommunication(t *testing.T) {
