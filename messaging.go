@@ -10,6 +10,8 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
+var numMsgSend uint64
+
 // Socket responsible for sending message to relay to broker
 func createClientSocket(cnd *candidate) (*zmq.Socket, error) {
 	clientSocket, err := zmq.NewSocket(zmq.REQ)

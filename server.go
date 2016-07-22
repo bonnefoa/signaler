@@ -11,7 +11,6 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-var numMsgSend uint64
 var openedConnections int32
 
 var upgrader = websocket.Upgrader{
