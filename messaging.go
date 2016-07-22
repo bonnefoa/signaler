@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync/atomic"
 
 	"github.com/bonnefoa/signaler/conf"
@@ -51,7 +52,7 @@ func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 	identity, err := socket.GetIdentity()
 	if err != nil {
 		log.Print("Could not get identity", err)
-		return
+		os.Exit(1)
 	}
 	log.Printf("Start worker loop for %s", identity)
 	for {
@@ -60,7 +61,7 @@ func workerLoop(conn *websocket.Conn, socket *zmq.Socket, cnd *candidate) {
 		if err != nil {
 			log.Printf("Error when receiving message for candidate %s",
 				cnd.String())
-			return
+			os.Exit(1)
 		}
 		if len(msg) == 1 && msg[0] == 'Q' {
 			log.Printf("[Worker %s] Exiting", identity)
