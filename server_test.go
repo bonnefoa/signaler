@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bonnefoa/signaler/broker"
+	"github.com/bonnefoa/signaler/brokerlib"
 	"github.com/bonnefoa/signaler/conf"
 	"github.com/gorilla/websocket"
 )
@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 		if !testing.Verbose() {
 			log.SetOutput(ioutil.Discard)
 		}
-		go broker.LaunchBroker()
+		go brokerlib.LaunchBroker()
 		go launchWebsocketServer(&testAddr)
 	}
 	atomic.StoreUint64(&numMsgSend, 0)
