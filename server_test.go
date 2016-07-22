@@ -140,6 +140,14 @@ func TestReuseIdentity(t *testing.T) {
 	waitOpenedConnections(t, 0)
 }
 
+func expectedMsgSend(t *testing.T, expected uint64) {
+	currentMsg := atomic.LoadUint64(&numMsgSend)
+	if currentMsg != expected {
+		t.Fatalf("Only %d messages should have been send, got %d", expected,
+			currentMsg)
+	}
+}
+
 func TestSimpleCommunication(t *testing.T) {
 	firstConn := connect(t, &testAddr)
 	sndConn := connect(t, &testAddr)
@@ -158,6 +166,7 @@ func TestSimpleCommunication(t *testing.T) {
 	if _, ok := firstMsg["candidate"]; !ok {
 		t.Fatalf("Expected candidate in map %s", firstMsg)
 	}
+	expectedMsgSend(t, 1)
 
 	sendMessage(t, sndID, firstConn, "sdp")
 	sndMsg := recvMsg(t, sndConn)
@@ -166,10 +175,7 @@ func TestSimpleCommunication(t *testing.T) {
 	}
 
 	sendMessage(t, "unknown", firstConn, "sdp")
-	currentMsg := atomic.LoadUint64(&numMsgSend)
-	if currentMsg != 2 {
-		t.Fatalf("Only 2 messages should have been send, got %d", currentMsg)
-	}
+	expectedMsgSend(t, 2)
 
 	closeConn(t, sndConn)
 	waitOpenedConnections(t, 1)
